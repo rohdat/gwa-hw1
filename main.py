@@ -18,9 +18,9 @@ import webapp2
 import cgi
 
 choice_form="""
-<form method="get">
-	<input type="radio" name="choice">Enter bday<br>
-	<input type="radio" name="choice">encrypt message<br>
+<form method="post">
+	<input type="radio" name="choice" value="one">Enter bday<br>
+	<input type="radio" name="choice" value="two">encrypt message<br>
 	<input type="submit">
 </form>
 
@@ -132,15 +132,16 @@ class MainHandler(webapp2.RequestHandler):
 
     def post(self):
     	choice = self.request.get('choice')
-    	if choice == 2:
+    	if choice == 'two':
     		self.redirect("/rot13")
-    	elif choice == 1:
+    	elif choice == 'one':
     		self.redirect("/bday")
 
 
 class Rot13Handler(webapp2.RequestHandler):
-	def write_form(self, encrypted=""):
-	    self.response.write(rot13_form %{"encrypted":encrypted})
+
+    def write_form(self, encrypted=""):
+        self.response.write(rot13_form % {"encrypted":cgi.escape(encrypted, quote=True)})
 
     def get(self):
         self.write_form()
@@ -150,7 +151,7 @@ class Rot13Handler(webapp2.RequestHandler):
     	outtext = rot13(intext)
     	self.write_form(cgi.escape(outtext, quote=True))
 
- class BdayHandler(webapp2.RequestHandler):
+class BdayHandler(webapp2.RequestHandler):
     def writeForm(self, error="",
      					 month="",
      					 day="",
@@ -195,3 +196,4 @@ app = webapp2.WSGIApplication([
     ('/thanks', ThanksHandler),
     ('/rot13', Rot13Handler)
 ], debug=True)
+
