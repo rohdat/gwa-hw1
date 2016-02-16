@@ -19,6 +19,8 @@ import cgi
 from rot13 import *
 from bday import *
 from password import *
+from templates import *
+import jinja2 
 
 choice_form="""
 <form method="post">
@@ -46,6 +48,8 @@ class MainHandler(webapp2.RequestHandler):
     		self.redirect("/bday")
     	elif choice == 'three':
     		self.redirect("/signup")
+        elif choice == "four":
+            self.redirect("/templates")
 
 
 app = webapp2.WSGIApplication([
@@ -54,6 +58,7 @@ app = webapp2.WSGIApplication([
     ('/thanks', ThanksHandler),
     ('/rot13', Rot13Handler),
     ('/signup', PasswordHandler),
+    ('/templates', TemplateHandler),
     ('/welcome', WelcomeHandler)
 ], debug=True)
 
