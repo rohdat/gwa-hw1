@@ -17,6 +17,11 @@
 import webapp2
 import cgi
 
-class TemplateHandler(webapp2.RequestHandler):
+
+class Handler (webapp2.RequestHandler):
+	def write (self, *a, **kw):
+		self.response.out.write(*a, **kw)
+
+class TemplateHandler(Handler):
 	def get(self):
 		self.response.write("Hwllasd")

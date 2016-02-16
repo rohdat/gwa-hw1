@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import webapp2
 import cgi
 from rot13 import *
@@ -22,11 +23,14 @@ from password import *
 from templates import *
 import jinja2 
 
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir))
 choice_form="""
 <form method="post">
 	<input type="radio" name="choice" value="one"> Enter Birthday<br>
 	<input type="radio" name="choice" value="two"> Encrypt Message<br>
-	<input type="radio" name="choice" value="three"> User Signup Message<br>
+    <input type="radio" name="choice" value="three"> User Signup Message<br>
+	<input type="radio" name="choice" value="four"> Template edu<br>
 	<input type="submit">
 </form>
 
