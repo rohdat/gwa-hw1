@@ -1,5 +1,11 @@
-<form>
+<form method="get">
 	<h2> Add food </h2>
 	<input type="text" name="food">
 	<button>Add</button>
+	<ol>
+		{% for x in range (1,n+1) %}
+			<li>{{x**2}}</li>
+		{% endfor %}
+		
+	</ol>
 </form>
