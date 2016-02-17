@@ -22,6 +22,7 @@ from bday import *
 from password import *
 from templates import *
 from fizzbuzz import *
+from asciichan import *
 import jinja2 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -32,7 +33,8 @@ choice_form="""
 	<input type="radio" name="choice" value="two"> Encrypt Message<br>
     <input type="radio" name="choice" value="three"> User Signup Message<br>
     <input type="radio" name="choice" value="four"> Template edu<br>
-	<input type="radio" name="choice" value="five"> FizzBuzz<br>
+    <input type="radio" name="choice" value="five"> FizzBuzz<br>
+	<input type="radio" name="choice" value="six"> AsciiChan<br>
 	<input type="submit">
 </form>
 
@@ -41,23 +43,26 @@ choice_form="""
 class MainHandler(webapp2.RequestHandler):
     
     def write_form(self):
-	    self.response.write(choice_form)
+        self.response.write(choice_form)
 
     def get(self):
         self.write_form()
 
     def post(self):
-    	choice = self.request.get('choice')
-    	if choice == 'two':
-    		self.redirect("/rot13")
-    	elif choice == 'one':
-    		self.redirect("/bday")
-    	elif choice == 'three':
-    		self.redirect("/signup")
+        choice = self.request.get('choice')
+        if choice == 'two':
+            self.redirect("/rot13")
+        elif choice == 'one':
+            self.redirect("/bday")
+        elif choice == 'three':
+            self.redirect("/signup")
         elif choice == "four":
             self.redirect("/templates")
         elif choice == "five":
             self.redirect("/fizzbuzz")
+        elif choice == "six":
+            self.redirect("/asciichan")
+
 
 
 app = webapp2.WSGIApplication([
@@ -68,6 +73,7 @@ app = webapp2.WSGIApplication([
     ('/signup', PasswordHandler),
     ('/templates', TemplateHandler),
     ('/fizzbuzz', FizzBuzzHandler),
+    ('/asciichan', AsciiChanHandler),
     ('/welcome', WelcomeHandler)
 ], debug=True)
 
