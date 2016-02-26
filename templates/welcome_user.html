@@ -1,0 +1,20 @@
+<!DOCTYPE = html>
+<html>
+<form method="get">
+<br>
+
+<b><head>Welcome {{username}}</head></b>
+<hr>
+{% for user in users %}
+<div class="user-data">
+	<table>
+		<tr>
+			<td>{{user.user}}</td>
+			<td>{{user.password}}</td>
+			<td>{{user.email}}</td>
+		</tr>
+	</table>
+</div>
+{% endfor %}
+</form>
+</html>

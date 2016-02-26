@@ -17,48 +17,23 @@
 import webapp2
 import cgi
 import re
+import os
+import jinja2 
+import hashlib
+import hmac
+import string
+import time
+import random
+from google.appengine.ext import db
 
-	#<p style="color:red" value="%(invalid_pwd)s)></p>
+# What is the directory where the templates (aka HTML) is stored?
+# that's template_dir. the RHS joins the /templates to the current working directory returned by path_dirname
 
-password_form = """
-<form method="post">
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
-	<head>Signup</head>
+# tell the jinja environment where this template directory is when instantiating it
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
 
-	<br>
-	<br>
-	<div class="container">
-	<label>Username
-		<input type="text" name="username" value="%(username)s">%(invalid_uname)s
-	</label>
-	<p style="color:red")></p>
-	<br>
-	
-	<label>Password
-		<input type="password" name="password">
-	</label>
-	<p style="color:red">%(invalid_pwd)s</p>
-	<br>
-
-	<label>Verify Password
-		<input type="password" name="verify">
-	</label>
-	<p style="color:red">%(pwd_no_match)s</p>
-	<br>
-
-	<label>Email(optional)
-		<input type="text" name="email" value="%(email)s">
-	</label>
-	<p style="color:red">%(invalid_email)s</p>
-	<br>
-	<div>
-	
-	<input type="submit">
-
-
-</form>
-
-"""
 
 welcome_form = """
 <form method="get">
@@ -73,28 +48,70 @@ password_form_dict = {"username":"",
 					  "invalid_pwd":"",
 					  "pwd_no_match":"",
 					  "email":"",
-					  "invalid_email":""}
+					  "invalid_email":"",
+					  "user_exists":False}
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASS_RE = re.compile(r"^.{3,20}$")
-EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]{2,3}$")
+EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]{1,5}$")
 
 def valid_in_regex(s, r):
 	return r.match(s)
 
-class PasswordHandler(webapp2.RequestHandler):
+class Handler (webapp2.RequestHandler):
+    def write (self, *a, **kw):
+        self.response.write(*a, **kw)
+
+    def render_str(self, template, **params):
+        t = jinja_env.get_template(template)
+        return t.render(params)
+
+    def render(self, template, **kw):
+        self.write(self.render_str(template, **kw))
+
+
+
+class UserProfile(db.Model):
+	user = db.StringProperty(required=True)
+	password = db.StringProperty(required=True)
+	email = db.StringProperty(required=False)
+
+	def verify_password(self,pwd_in):
+		myhash, mysalt = self.password.split('|')
+		return self.password == self.encrypt(pwd_in, salt=mysalt)
+
+	@classmethod
+	def encrypt(self, pwd_in, **salt):
+		if not salt:
+			salt['salt'] = self.make_salt()
+		return self.hashme(pwd_in, salt.get('salt')) + "|" + salt.get('salt')
+
+	@classmethod
+	def make_salt(self):
+		return ''.join(random.choice(string.ascii_letters) for x in xrange(5))
+
+	@classmethod
+	def hashme(self, string1, string2):
+		return hashlib.sha256(string1+string2).hexdigest()
+	
+class PasswordHandler(Handler):
 
 	form_dict = {}
 	form_dict = password_form_dict
 
 	def write_form(self, respond_dict=form_dict):
-		self.response.write(password_form % respond_dict)
+		self.render("signup.html" , **respond_dict)
 	
 	def get(self):
 		self.form_dict = {}
 		self.form_dict = password_form_dict
 		self.write_form()
 		#self.response.write("Hello welcome to signup")
+
+	def check_if_exists(self,username):
+		for user in WelcomeHandler.getusers():
+			if user.user == username:
+				return True
 
 	def post(self):
 		self.form_dict = {}
@@ -108,45 +125,64 @@ class PasswordHandler(webapp2.RequestHandler):
 		email = self.request.get('email')
 		email = email.encode('ascii')
 
+		self.form_dict["user_exists"] = self.check_if_exists(username)
+		error = self.check_if_exists(username)
+
 		self.form_dict["username"] = cgi.escape(username,quote=True)
 		self.form_dict["email"] = cgi.escape(email,quote=True)
 
-		error = 0
+		#get cookie
+		user_cookie = self.request.cookies.get("username")
+		if not user_cookie == username:
+			self.response.headers.add_header('Set-Cookie', 'username=%s;Path=/'%username)
+
+
 
 		if not (password1 == password2):
 			self.form_dict["pwd_no_match"] = "Your passwords didn't match."
-			error = 1
+			error = True
 		else:
 			self.form_dict["pwd_no_match"] = ""
 
 
 		if not valid_in_regex(username, USER_RE):
 			self.form_dict["invalid_uname"] = "Invalid username."
-			error = 1
+			error = True
 		else:
 			self.form_dict["invalid_uname"] = ""
 
 		if not valid_in_regex(password1, PASS_RE):
 			self.form_dict["invalid_pwd"] = "That wasn't a valid password."
-			error = 1
+			error = True
 		else:
 			self.form_dict["invalid_pwd"] = ""
 
-		if not valid_in_regex(email, EMAIL_RE):
+		if not valid_in_regex(email, EMAIL_RE) and not email == "":
 			self.form_dict["invalid_email"] = "That's not a valid email."
-			error = 1
+			error = True
 		else:
 			self.form_dict["invalid_email"] = ""
 
-		if error == 1:
+		if error:
 			#self.response.write(password_form_dict)
 			self.write_form()
 		else:
-			global welcome_form
-			welcome_form = welcome_form % {'username' :cgi.escape(username , quote=True)}
-			self.redirect('/welcome')
+			user = UserProfile(user = username, password=UserProfile.encrypt(password1), email=email)
+			user.put()
+			is_pwd = user.verify_password(password1)
+
+			time.sleep(1)
+			self.redirect('/welcome?user=%s&?is_pwd=%s'%(username,is_pwd))
 
 
-class WelcomeHandler(webapp2.RequestHandler):
+class WelcomeHandler(Handler):
 	def get(self):
-		self.response.write(welcome_form)
+
+		username = self.request.get('user')
+		users = self.getusers()
+		self.render("welcome_user.html", **{"username": username, "users" : users})
+
+	@classmethod
+	def getusers(self):
+		return db.GqlQuery("SELECT * from UserProfile "
+							"ORDER BY user DESC ")

@@ -1,0 +1,48 @@
+<!DOCTYPE=html>
+<html>
+<form method="post">
+	<head>Signup1</head>
+	<div class="container">
+		<table>
+			<tr>
+				<td>Username</td>
+				<td><input type="text" name="username" value="{{username}}"></td>
+				<td><p style="color:red")>{{invalid_uname}}</p></td>
+			</tr>
+			<br>
+			<tr>
+				<td>Password</td>
+				<td><input type="password" name="password"></td>
+				<td><p style="color:red">{{invalid_pwd}}</p></td>
+			</tr>
+			<br>
+			<tr>
+				<td>Verify Password</td>
+				<td><input type="password" name="verify"></td>
+				<td><p style="color:red">{{pwd_no_match}}</p></td>
+			</tr>
+			<br>
+			<tr>
+				<td>Email(optional)</td>
+				<td><input type="text" name="email" value="{{email}}"></td>
+				<td><p style="color:red">{{invalid_email}}</p></td>
+			</tr>
+		</table>
+		<br>
+	<div>
+	{% if user_exists %}
+	<body onload="myFunction()">
+	<p style="color:red"> USER EXISTS!! </p>
+	<script>
+		function myFunction() {
+			alert("User already exists. Try again. Yay js.");
+		}
+	</script>
+	</body>
+	{% endif %}
+	
+	<input type="submit">
+
+
+</form>
+</html>

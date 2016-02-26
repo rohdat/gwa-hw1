@@ -18,6 +18,7 @@ import os
 import webapp2
 import cgi
 import jinja2 
+import time
 
 from google.appengine.ext import db
 
@@ -26,7 +27,7 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), a
 
 class Handler (webapp2.RequestHandler):
     def write (self, *a, **kw):
-        self.response.out.write(*a, **kw)
+        self.response.write(*a, **kw)
 
     def render_str(self, template, **params):
         t = jinja_env.get_template(template)
@@ -48,10 +49,12 @@ class AsciiChanHandler(Handler):
 	def render_front(self, title="", art="", error=""):
 		arts = db.GqlQuery("SELECT * FROM Art "
 						   "ORDER BY created DESC ")
+
 		self.render("asciichan.html", title=title, art=art, error=error, arts=arts)
 
 	def get(self):
 		self.render_front()
+		#self.clear_db()
 
 	def post(self):
 		title = self.request.get("title")
@@ -60,7 +63,15 @@ class AsciiChanHandler(Handler):
 		if title and art:
 			a = Art(title=title, art=art)
 			a.put()
+			# have to wait for the db to be updatd 
+			# else we don't see blog post updates after clicking Submit
+			time.sleep(1)
 			self.redirect("/asciichan")
 		else:
 			error = "we need title and art"
 			self.render_front(error=error, title=title, art=art)
+
+	def clear_db(self):
+		arts = db.GqlQuery("SELECT * from Art")
+		for art in arts:
+			art.delete()

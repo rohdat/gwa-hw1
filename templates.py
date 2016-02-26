@@ -18,7 +18,13 @@ import os
 import webapp2
 import cgi
 import jinja2 
+
+# What is the directory where the templates (aka HTML) is stored?
+# that's template_dir. the RHS joins the /templates to the current working directory returned by path_dirname
+
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+
+# tell the jinja environment where this template directory is when instantiating it
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir))
 
 class Handler (webapp2.RequestHandler):
