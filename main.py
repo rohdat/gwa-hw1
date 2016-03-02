@@ -71,6 +71,8 @@ app = webapp2.WSGIApplication([
     ('/thanks', ThanksHandler),
     ('/rot13', Rot13Handler),
     ('/signup', PasswordHandler),
+    ('/login', LoginHandler),
+    ('/logout', LogoutHandler),
     ('/templates', TemplateHandler),
     ('/fizzbuzz', FizzBuzzHandler),
     ('/asciichan', AsciiChanHandler),

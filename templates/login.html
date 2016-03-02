@@ -1,0 +1,34 @@
+<!DOCTYPE=html>
+<html>
+<form method="post">
+	<head>Signup1</head>
+	<div class="container">
+		<table>
+			<tr>
+				<td>Username</td>
+				<td><input type="text" name="username" value="{{username}}"></td>
+			</tr>
+			<br>
+			<tr>
+				<td>Password</td>
+				<td><input type="password" name="password"></td>
+			</tr>
+		</table>
+		<br>
+	<div>
+	{% if invalid_user %}
+	<body onload="myFunction()">
+	<p style="color:red"> Invalid username or password </p>
+	<script>
+		function myFunction() {
+			alert("Invalid username or password. Try again. Yay js.");
+		}
+	</script>
+	</body>
+	{% endif %}
+	
+	<input type="submit">
+
+
+</form>
+</html>

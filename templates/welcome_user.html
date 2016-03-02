@@ -3,7 +3,8 @@
 <form method="get">
 <br>
 
-<b><head>Welcome {{username}}</head></b>
+<b><head>Welcome, {{username}}</head></b>
+{% if allusers %}
 <hr>
 {% for user in users %}
 <div class="user-data">
@@ -16,5 +17,6 @@
 	</table>
 </div>
 {% endfor %}
+{% endif %}
 </form>
 </html>

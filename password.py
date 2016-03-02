@@ -77,6 +77,8 @@ class UserProfile(db.Model):
 	email = db.StringProperty(required=False)
 
 	def verify_password(self,pwd_in):
+		if pwd_in == "":
+			return False
 		myhash, mysalt = self.password.split('|')
 		return self.password == self.encrypt(pwd_in, salt=mysalt)
 
@@ -105,9 +107,11 @@ class PasswordHandler(Handler):
 	def get(self):
 		self.form_dict = {}
 		self.form_dict = password_form_dict
+
 		self.write_form()
 		#self.response.write("Hello welcome to signup")
 
+	@classmethod
 	def check_if_exists(self,username):
 		for user in WelcomeHandler.getusers():
 			if user.user == username:
@@ -136,14 +140,11 @@ class PasswordHandler(Handler):
 		if not user_cookie == username:
 			self.response.headers.add_header('Set-Cookie', 'username=%s;Path=/'%username)
 
-
-
 		if not (password1 == password2):
 			self.form_dict["pwd_no_match"] = "Your passwords didn't match."
 			error = True
 		else:
 			self.form_dict["pwd_no_match"] = ""
-
 
 		if not valid_in_regex(username, USER_RE):
 			self.form_dict["invalid_uname"] = "Invalid username."
@@ -170,19 +171,48 @@ class PasswordHandler(Handler):
 			user = UserProfile(user = username, password=UserProfile.encrypt(password1), email=email)
 			user.put()
 			is_pwd = user.verify_password(password1)
-
 			time.sleep(1)
-			self.redirect('/welcome?user=%s&?is_pwd=%s'%(username,is_pwd))
+			self.redirect('/welcome')
 
 
 class WelcomeHandler(Handler):
 	def get(self):
+		allusers = bool(self.request.get('render_all')) | True
 
-		username = self.request.get('user')
+		# Get the cookie from the request
+		username = self.request.cookies.get('username')
 		users = self.getusers()
-		self.render("welcome_user.html", **{"username": username, "users" : users})
+		self.render("welcome_user.html", **{"username": username, "users" : users, "render_all" : allusers})
 
 	@classmethod
 	def getusers(self):
 		return db.GqlQuery("SELECT * from UserProfile "
 							"ORDER BY user DESC ")
+
+
+class LoginHandler (Handler):
+
+	def get(self):
+		self.render("login.html")
+
+	def post(self):
+		user = db.GqlQuery("SELECT * from UserProfile "
+						   "WHERE user = '%s'"%self.request.get('username'))
+		user_validated = False
+		for u in user:
+			if u:
+				username = u.user
+				if u.verify_password(self.request.get('password')) :
+					user_validated = True
+
+		if user_validated:
+			self.response.headers.add_header('Set-Cookie', 'username=%s;Path=/'%str(username))
+			self.redirect('/welcome?user=%s&?is_pwd=%s&?render_all=False'%(username,user_validated))
+		else:
+			self.render("login.html", **{"username": username, "invalid_user": not user_validated})
+
+class LogoutHandler(Handler):
+	def get(self):
+		#redirect to signup and delete cookie
+		self.response.headers.add_header('Set-Cookie', 'username=;Path=/')
+		self.redirect("/signup")
