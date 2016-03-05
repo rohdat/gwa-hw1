@@ -19,8 +19,11 @@ import webapp2
 import cgi
 import jinja2 
 import time
+import urllib2
+from xml.dom import minidom
 
 from google.appengine.ext import db
+from google.appengine.ext import ndb
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
@@ -41,6 +44,15 @@ class Art(db.Model):
 	art = db.TextProperty(required=True)
 
 	created = db.DateTimeProperty(auto_now_add=True)
+
+IP_URL = "http://api.hostip.info/?ip="
+def get_coords(ip):
+	url - IP_URL + ip
+	content = None
+	try
+		content = urllib2.urlopen(url).read()
+	except URLError:
+		return
 
 
 

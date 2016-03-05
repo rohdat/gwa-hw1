@@ -24,7 +24,7 @@ import hmac
 import string
 import time
 import random
-from google.appengine.ext import db
+from google.appengine.ext import ndb
 
 # What is the directory where the templates (aka HTML) is stored?
 # that's template_dir. the RHS joins the /templates to the current working directory returned by path_dirname
@@ -71,10 +71,10 @@ class Handler (webapp2.RequestHandler):
 
 
 
-class UserProfile(db.Model):
-	user = db.StringProperty(required=True)
-	password = db.StringProperty(required=True)
-	email = db.StringProperty(required=False)
+class UserProfile(ndb.Model):
+	user = ndb.StringProperty(required=True)
+	password = ndb.StringProperty(required=True)
+	email = ndb.StringProperty(required=False)
 
 	def verify_password(self,pwd_in):
 		if pwd_in == "":
@@ -172,22 +172,21 @@ class PasswordHandler(Handler):
 			user.put()
 			is_pwd = user.verify_password(password1)
 			time.sleep(1)
-			self.redirect('/welcome')
+			self.redirect('/welcome?render_all=%s'%(True))
 
 
 class WelcomeHandler(Handler):
 	def get(self):
-		allusers = bool(self.request.get('render_all')) | True
+		allusers = bool(self.request.get('render_all')) 
 
 		# Get the cookie from the request
 		username = self.request.cookies.get('username')
 		users = self.getusers()
-		self.render("welcome_user.html", **{"username": username, "users" : users, "render_all" : allusers})
+		self.render("welcome_user.html", **{"username": username, "users" : users, "allusers" : allusers})
 
 	@classmethod
 	def getusers(self):
-		return db.GqlQuery("SELECT * from UserProfile "
-							"ORDER BY user DESC ")
+		return UserProfile.query()
 
 
 class LoginHandler (Handler):
@@ -196,8 +195,7 @@ class LoginHandler (Handler):
 		self.render("login.html")
 
 	def post(self):
-		user = db.GqlQuery("SELECT * from UserProfile "
-						   "WHERE user = '%s'"%self.request.get('username'))
+		user = UserProfile.query(UserProfile.user==self.request.get('username'))
 		user_validated = False
 		for u in user:
 			if u:
@@ -207,7 +205,7 @@ class LoginHandler (Handler):
 
 		if user_validated:
 			self.response.headers.add_header('Set-Cookie', 'username=%s;Path=/'%str(username))
-			self.redirect('/welcome?user=%s&?is_pwd=%s&?render_all=False'%(username,user_validated))
+			self.redirect('/welcome?user=%s'%(username))
 		else:
 			self.render("login.html", **{"username": username, "invalid_user": not user_validated})
 
