@@ -49,7 +49,7 @@ IP_URL = "http://api.hostip.info/?ip="
 def get_coords(ip):
 	url - IP_URL + ip
 	content = None
-	try
+	try:
 		content = urllib2.urlopen(url).read()
 	except URLError:
 		return
