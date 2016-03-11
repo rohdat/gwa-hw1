@@ -17,6 +17,11 @@
 		color: red
 	}
 
+	.map {
+		position: absolute;
+		right: 100px;
+		top: 112px;
+	}
 	textarea {
 		width: 400px;
 		height: 200px;
@@ -71,7 +76,9 @@
 			<input type="submit">
 
 		</form>
-
+		{% if img_url %}
+		<img class="map" src="{{img_url}}">
+		{% endif %}
 		<hr>
 
 		{% for art in arts %}

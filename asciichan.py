@@ -21,9 +21,12 @@ import jinja2
 import time
 import urllib2
 from xml.dom import minidom
-
+import logging
 from google.appengine.ext import db
 from google.appengine.ext import ndb
+
+MAPS_URL = "http://maps.googleapis.com/maps/api/staticmap?size=380x263&sensor=false&"
+MY_COORDS = "44,-68"
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
@@ -39,30 +42,56 @@ class Handler (webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-class Art(db.Model):
-	title = db.StringProperty(required=True)
-	art = db.TextProperty(required=True)
-
-	created = db.DateTimeProperty(auto_now_add=True)
+class Art(ndb.Model):
+	title = ndb.StringProperty(required=True)
+	art = ndb.TextProperty(required=True)
+	location = ndb.GeoPtProperty()
+	created = ndb.DateTimeProperty(auto_now_add=True)
 
 IP_URL = "http://api.hostip.info/?ip="
-def get_coords(ip):
-	url - IP_URL + ip
+def get_coords(ip=MAPS_URL):
+	url = IP_URL + ip
 	content = None
+	return ndb.GeoPt(MY_COORDS)
 	try:
 		content = urllib2.urlopen(url).read()
 	except URLError:
 		return
 
+CACHE = {}
+def get_arts(update = False):
+	key = 'top'
+	if not update and key in CACHE:
+		arts = CACHE[key]
+	else:
+		arts = Art.query().order(-Art.created)
+		logging.error("NDB QUERY")
+		arts = list(arts)
+		CACHE[key] = arts
+
+	return arts	
+
+def gmaps_img(points):
+	markers = '&'.join('markers=%s,%s'%(p.lat,p.lon) for p in points)
+	return MAPS_URL + markers
 
 
 class AsciiChanHandler(Handler):
 
 	def render_front(self, title="", art="", error=""):
-		arts = db.GqlQuery("SELECT * FROM Art "
-						   "ORDER BY created DESC ")
+		arts = get_arts()
+		points = []
+		for a in arts:
+			if a.location:
+				points.append(a.location)
 
-		self.render("asciichan.html", title=title, art=art, error=error, arts=arts)
+		points = filter(None, (a.location for a in arts))
+		if points:
+			img_url = gmaps_img(points)
+
+
+		self.write(repr(img_url))
+		self.render("asciichan.html", title=title, art=art, error=error, arts=arts, img_url=img_url)
 
 	def get(self):
 		self.render_front()
@@ -74,10 +103,14 @@ class AsciiChanHandler(Handler):
 
 		if title and art:
 			a = Art(title=title, art=art)
+			coords = get_coords()
+			if coords:
+				a.location = coords
 			a.put()
+			time.sleep(1)
+			get_arts(True)
 			# have to wait for the db to be updatd 
 			# else we don't see blog post updates after clicking Submit
-			time.sleep(1)
 			self.redirect("/asciichan")
 		else:
 			error = "we need title and art"
