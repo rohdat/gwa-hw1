@@ -24,6 +24,7 @@ from xml.dom import minidom
 import logging
 from google.appengine.ext import db
 from google.appengine.ext import ndb
+from google.appengine.api import memcache
 
 MAPS_URL = "http://maps.googleapis.com/maps/api/staticmap?size=380x263&sensor=false&"
 MY_COORDS = "44,-68"
@@ -58,17 +59,14 @@ def get_coords(ip=MAPS_URL):
 	except URLError:
 		return
 
-CACHE = {}
 def get_arts(update = False):
 	key = 'top'
-	if not update and key in CACHE:
-		arts = CACHE[key]
-	else:
+	arts = memcache.get(key)
+	if arts is None or update:
 		arts = Art.query().order(-Art.created)
 		logging.error("NDB QUERY")
 		arts = list(arts)
-		CACHE[key] = arts
-
+		memcache.set(key, arts)
 	return arts	
 
 def gmaps_img(points):
@@ -81,6 +79,7 @@ class AsciiChanHandler(Handler):
 	def render_front(self, title="", art="", error=""):
 		arts = get_arts()
 		points = []
+		img_url = ""
 		for a in arts:
 			if a.location:
 				points.append(a.location)
@@ -88,7 +87,6 @@ class AsciiChanHandler(Handler):
 		points = filter(None, (a.location for a in arts))
 		if points:
 			img_url = gmaps_img(points)
-
 
 		self.write(repr(img_url))
 		self.render("asciichan.html", title=title, art=art, error=error, arts=arts, img_url=img_url)
